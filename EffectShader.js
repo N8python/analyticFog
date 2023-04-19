@@ -9,7 +9,10 @@ const EffectShader = {
         'viewMatrixInv': { value: new THREE.Matrix4() },
         'cameraPos': { value: new THREE.Vector3() },
         "fogNormal": { value: new THREE.Vector3(0, 1, 0) },
-        "fogOffset": { value: 0 }
+        "fogOffset": { value: 0 },
+        "fogDensity": { value: 0.025 },
+        "fogFalloff": { value: 0.1 },
+        "fogColor": { value: new THREE.Vector3(0.5, 0.6, 0.7) }
     },
 
     vertexShader: /* glsl */ `
@@ -27,6 +30,9 @@ const EffectShader = {
     uniform vec3 cameraPos;
     uniform vec3 fogNormal;
     uniform float fogOffset;
+    uniform float fogDensity;
+    uniform float fogFalloff;
+    uniform vec3 fogColor;
         varying vec2 vUv;
         vec3 getWorldPos(float depth, vec2 coord) {
           float z = depth * 2.0 - 1.0;
@@ -49,12 +55,12 @@ const EffectShader = {
             }
             worldPos += fogNormal * -fogOffset;
             vec3 offsetCameraPos = cameraPos + fogNormal * -fogOffset;
-            const float a = 0.025;
-            const float b = 0.1;
+            float a = fogDensity;
+            float b = fogFalloff;
             float camStartAlongPlane = dot(offsetCameraPos, fogNormal);
             float rayAlongPlane = dot(rayDir, fogNormal);
             float fogAmount =  (a/b) * max(abs(exp(-camStartAlongPlane*b)), 1e-20) * (1.0-exp( -distance(cameraPos, worldPos)*rayAlongPlane*b ))/rayAlongPlane;
-            diffuse.rgb = mix(diffuse.rgb, vec3(0.5,0.6,0.7), 1.0 - exp(-fogAmount));
+            diffuse.rgb = mix(diffuse.rgb, fogColor, 1.0 - exp(-fogAmount));
             gl_FragColor = vec4(
               diffuse.rgb, 1.0);
             #include <dithering_fragment>

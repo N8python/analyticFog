@@ -6,6 +6,8 @@ import { SMAAPass } from 'https://unpkg.com/three@0.150.0/examples/jsm/postproce
 import { GammaCorrectionShader } from 'https://unpkg.com/three@0.150.0/examples/jsm/shaders/GammaCorrectionShader.js';
 import { EffectShader } from "./EffectShader.js";
 import { OrbitControls } from 'https://unpkg.com/three@0.150.0/examples/jsm/controls/OrbitControls.js';
+import { GUI } from 'https://unpkg.com/three@0.150.0/examples/jsm/libs/lil-gui.module.min.js';
+import { TransformControls } from './TransformControls.js';
 import { AssetManager } from './AssetManager.js';
 import { Stats } from "./stats.js";
 async function main() {
@@ -84,6 +86,23 @@ async function main() {
     torusKnot.castShadow = true;
     torusKnot.receiveShadow = true;
     scene.add(torusKnot);
+    const effectController = {
+        dirX: 0,
+        dirY: 1,
+        dirZ: 0,
+        offset: 0,
+        density: 0.025,
+        falloff: 0.1,
+        fogColor: [0.5, 0.6, 0.7]
+    };
+    const gui = new GUI();
+    gui.add(effectController, "dirX", -1, 1, 0.01).name("Dir X");
+    gui.add(effectController, "dirY", -1, 1, 0.01).name("Dir Y");
+    gui.add(effectController, "dirZ", -1, 1, 0.01).name("Dir Z");
+    gui.add(effectController, "offset", -25, 25, 0.01).name("Offset");
+    gui.add(effectController, "density", 0.01, 0.1, 0.001).name("Density");
+    gui.add(effectController, "falloff", 0.001, 1, 0.0001).name("Falloff");
+    gui.addColor(effectController, "fogColor").name("Fog Color");
     // Build postprocessing stack
     // Render Targets
     const defaultTexture = new THREE.WebGLRenderTarget(clientWidth, clientHeight, {
@@ -113,8 +132,19 @@ async function main() {
         effectPass.uniforms["projectionMatrixInv"].value = camera.projectionMatrixInverse;
         effectPass.uniforms["viewMatrixInv"].value = camera.matrixWorld;
         effectPass.uniforms["cameraPos"].value = camera.getWorldPosition(new THREE.Vector3());
-        effectPass.uniforms["fogNormal"].value = new THREE.Vector3(0, 1, 0).normalize();
-        effectPass.uniforms["fogOffset"].value = 0.0;
+        effectPass.uniforms["fogNormal"].value = new THREE.Vector3(
+            effectController.dirX,
+            effectController.dirY,
+            effectController.dirZ
+        );
+        effectPass.uniforms["fogOffset"].value = effectController.offset;
+        effectPass.uniforms["fogFalloff"].value = effectController.falloff;
+        effectPass.uniforms["fogDensity"].value = effectController.density;
+        effectPass.uniforms["fogColor"].value = new THREE.Vector3(
+            effectController.fogColor[0],
+            effectController.fogColor[1],
+            effectController.fogColor[2]
+        );
         composer.render();
         controls.update();
         stats.update();
